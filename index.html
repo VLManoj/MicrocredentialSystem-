@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MicroCredentialing DApp</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 600px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .section label {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .section input[type="text"],
+        .section input[type="checkbox"] {
+            margin-right: 10px;
+        }
+
+        .section button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .section button:hover {
+            background-color: #0056b3;
+        }
+
+        .output {
+            margin-top: 10px;
+            color: green;
+        }
+    </style>
+    <script>
+        let web3;
+        let contract;
+        const contractAddress = '0x0713AD7821a116F9FEa007DF9B8eD8D9DEA58E9C';
+        const contractABI = [
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "address",
+                        "name": "userAddress",
+                        "type": "address"
+                    }
+                ],
+                "name": "CredentialIssued",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "address",
+                        "name": "userAddress",
+                        "type": "address"
+                    }
+                ],
+                "name": "CredentialRevoked",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {
+                        "indexed": false,
+                        "internalType": "address",
+                        "name": "userAddress",
+                        "type": "address"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "bool",
+                        "name": "isAdmin",
+                        "type": "bool"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "bool",
+                        "name": "isFaculty",
+                        "type": "bool"
+                    },
+                    {
+                        "indexed": false,
+                        "internalType": "bool",
+                        "name": "isStudent",
+                        "type": "bool"
+                    }
+                ],
+                "name": "UserRegistered",
+                "type": "event"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "name": "credentials",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function",
+                "constant": true
+            },
+            {
+                "inputs": [],
+                "name": "owner",
+                "outputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function",
+                "constant": true
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "",
+                        "type": "address"
+                    }
+                ],
+                "name": "users",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "isAdmin",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isFaculty",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "isStudent",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function",
+                "constant": true
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "_isAdmin",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "_isFaculty",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "_isStudent",
+                        "type": "bool"
+                    }
+                ],
+                "name": "registerUser",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_userAddress",
+                        "type": "address"
+                    }
+                ],
+                "name": "issueCredential",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_userAddress",
+                        "type": "address"
+                    }
+                ],
+                "name": "verifyCredential",
+                "outputs": [
+                    {
+                        "internalType": "bool",
+                        "name": "",
+                        "type": "bool"
+                    }
+                ],
+                "stateMutability": "view",
+                "type": "function",
+                "constant": true
+            },
+            {
+                "inputs": [
+                    {
+                        "internalType": "address",
+                        "name": "_userAddress",
+                        "type": "address"
+                    }
+                ],
+                "name": "revokeCredential",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        window.onload = async () => {
+            if (window.ethereum) {
+                web3 = new Web3(window.ethereum);
+                await window.ethereum.enable();
+                contract = new web3.eth.Contract(contractABI, contractAddress);
+            } else {
+                alert('Please install MetaMask!');
+            }
+        };
+
+        const registerUser = async () => {
+            const accounts = await web3.eth.getAccounts();
+            const isAdmin = document.getElementById('isAdmin').checked;
+            const isFaculty = document.getElementById('isFaculty').checked;
+            const isStudent = document.getElementById('isStudent').checked;
+            await contract.methods.registerUser(isAdmin, isFaculty, isStudent).send({ from: accounts[0] });
+            alert('User registered successfully!');
+        };
+
+        const issueCredential = async () => {
+            const accounts = await web3.eth.getAccounts();
+            const userAddress = document.getElementById('userAddress').value;
+            await contract.methods.issueCredential(userAddress).send({ from: accounts[0] });
+            alert('Credential issued successfully!');
+        };
+
+        const revokeCredential = async () => {
+            const accounts = await web3.eth.getAccounts();
+            const userAddress = document.getElementById('revokeUserAddress').value;
+            await contract.methods.revokeCredential(userAddress).send({ from: accounts[0] });
+            alert('Credential revoked successfully!');
+        };
+    </script>
+</head>
+
+<body>
+    <h1>MicroCredentialing DApp</h1>
+    <div class="container">
+        <div class="section">
+            <h2>Register User</h2>
+            <label>
+                <input type="checkbox" id="isAdmin"> Is Admin
+            </label>
+            <label>
+                <input type="checkbox" id="isFaculty"> Is Faculty
+            </label>
+            <label>
+                <input type="checkbox" id="isStudent"> Is Student
+            </label>
+            <button onclick="registerUser()">Register</button>
+        </div>
+        <div class="section">
+            <h2>Issue Credential</h2>
+            <input type="text" id="userAddress" placeholder="User Address">
+            <button onclick="issueCredential()">Issue</button>
+        </div>
+        <div class="section">
+            <h2>Revoke Credential</h2>
+            <input type="text" id="revokeUserAddress" placeholder="User Address">
+            <button onclick="revokeCredential()">Revoke</button>
+        </div>
+    </div>
+</body>
+
+</html>
